@@ -48,6 +48,7 @@
   "devDependencies": {
     "@rollup/plugin-virtual": "^3.0.1",
     "@types/estree": "^0.0.50",
+    "@types/node": "^20.11.17",
     "conventional-changelog-cli": "^4.1.0",
     "typescript": "^4.9.4",
     "vite": "^4.0.5"
