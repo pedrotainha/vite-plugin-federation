@@ -32,6 +32,7 @@ import { prodExposePlugin } from './prod/expose-production'
 import { devSharedPlugin } from './dev/shared-development'
 import { devRemotePlugin } from './dev/remote-development'
 import { devExposePlugin } from './dev/expose-development'
+import { inspectPackage } from './utils/inspectPackage'
 
 export default function federation(
   options: VitePluginFederationOptions
@@ -210,3 +211,5 @@ export default function federation(
     }
   }
 }
+
+export { inspectPackage }

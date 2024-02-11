@@ -4,8 +4,23 @@
  */
 import { RenderedChunk } from 'rollup'
 
-export default function federation(options: VitePluginFederationOptions): Plugin
+export type Dep = {
+  version: string
+  requiredVersion?: string
+  packagePath?: string
+}
 
+export type Deps = {
+  [s: string]: Dep
+}
+
+export default function federation(options: VitePluginFederationOptions): Plugin
+export declare function inspectPackage(
+  url: string,
+  importUrl: string,
+  scope?: string,
+  peer?: boolean
+): Promise<Deps>
 declare interface VitePluginFederationOptions {
   /**
    * Modules that should be exposed by this container. When provided, property name is used as public name, otherwise public name is automatically inferred from request.
