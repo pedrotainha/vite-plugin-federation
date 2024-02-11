@@ -2,14 +2,9 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import checker from 'vite-plugin-checker';
 import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const getDirname = url => {
-  const __filename = new URL(url).pathname;
-  const notTheFinalDirname = dirname(__filename);
-  return notTheFinalDirname.indexOf('/') == 0 ? notTheFinalDirname.substring(1) : notTheFinalDirname;
-};
-
-const __dirname = getDirname(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 //@TODO colocar na Readme como mockar Mfe ou outros components com vitest
 const configResolveMfe = (module, component) => {

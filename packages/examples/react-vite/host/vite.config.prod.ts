@@ -16,6 +16,7 @@ export default defineConfig({
     ...serveOptions,
   },
   build: {
+    emptyOutDir: true,
     modulePreload: false,
     cssCodeSplit: false,
     // set reportCompressedSize: false to improve performance due large files/codebase

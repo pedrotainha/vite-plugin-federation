@@ -1,4 +1,6 @@
-import viteFederation from '@originjs/vite-plugin-federation';
+import viteFederation, { inspectPackage } from '@originjs/vite-plugin-federation';
+
+const dependencies = await inspectPackage('package.json', import.meta.url);
 
 export const federation = () =>
   viteFederation({
@@ -6,10 +8,7 @@ export const federation = () =>
     exposes: {
       './Button': './src/components/Button',
     },
-    shared: {
-      'react': {},
-      'react-dom': {},
-    },
+    shared: dependencies,
   });
 
 export const serveOptions = {

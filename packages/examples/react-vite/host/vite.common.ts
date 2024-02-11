@@ -1,4 +1,6 @@
-import viteFederation from '@originjs/vite-plugin-federation';
+import viteFederation, { inspectPackage } from '@originjs/vite-plugin-federation';
+
+const dependencies = await inspectPackage('package.json', import.meta.url);
 
 export const federation = () =>
   viteFederation({
@@ -6,10 +8,7 @@ export const federation = () =>
     remotes: {
       remoteApp: 'http://localhost:5001/assets/remoteEntry.js',
     },
-    shared: {
-      'react': {},
-      'react-dom': {},
-    },
+    shared: dependencies,
   });
 
 export const serveOptions = {
