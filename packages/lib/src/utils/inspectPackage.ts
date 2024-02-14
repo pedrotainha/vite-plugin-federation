@@ -3,6 +3,7 @@ import { readdirSync, existsSync, readFileSync } from 'fs'
 import Os from 'os'
 import { satisfy } from './semver/satisfy'
 import { Deps } from 'types'
+import { join } from 'path'
 
 const isWindows = () => {
   return Os.platform() === 'win32'
@@ -124,12 +125,27 @@ export const inspectPackage = async (
 
   //Add to shared dependencies
   for (const property in pkgDeps) {
+    //Share JSX (only this way we can have a proper unique loading of the react lib)
     const version = pkgDeps[property].replace('^', '')
+
+    if (property === 'react') {
+      const jsxPath =
+        process.env.NODE_ENV === 'production'
+          ? './cjs/react-jsx-runtime.production.min.js'
+          : './cjs/react-jsx-runtime.development.js'
+
+      const packagePath = join(getModulePath(property, version), jsxPath)
+
+      sharedDeps['react/jsx-runtime'] = {
+        version: version,
+        packagePath
+      }
+    }
+
     sharedDeps[property] = {
       version,
       requiredVersion:
         scope && !property.startsWith(`@${scope}`) ? version : undefined,
-      //packagePath is only needed when packages are referenced in the peer deps
       packagePath: peer
         ? fileURLToPath(new URL(getModulePath(property, version), importUrl))
         : undefined
