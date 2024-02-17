@@ -33,6 +33,7 @@ import { devSharedPlugin } from './dev/shared-development'
 import { devRemotePlugin } from './dev/remote-development'
 import { devExposePlugin } from './dev/expose-development'
 import { inspectPackage } from './utils/inspectPackage'
+import { fileURLToPath } from 'url'
 
 export default function federation(
   options: VitePluginFederationOptions
@@ -145,10 +146,9 @@ export default function federation(
         }
       }
       if (args[0] === '__federation_fn_satisfy') {
-        const federationId = (
-          await this.resolve('@originjs/vite-plugin-federation')
-        )?.id
-        return await this.resolve(`${dirname(federationId!)}/satisfy.mjs`)
+        return await this.resolve(
+          `${dirname(fileURLToPath(import.meta.url))}/satisfy.mjs`
+        )
       }
       if (args[0] === 'virtual:__federation__') {
         return {
