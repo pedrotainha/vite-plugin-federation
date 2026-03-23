@@ -69,18 +69,22 @@ function flattenModule(module, name) {
     // Object.assign creates a shallow snapshot that breaks mutable internal
     // state such as React's hooks dispatcher (__CLIENT_INTERNALS...H), which
     // is set at render-time and would be null in the snapshot.
+    // IMPORTANT: Save original module ref BEFORE reassigning, otherwise
+    // the Proxy traps would recursively call themselves via `in module`.
+    const originalModule = module
     module = new Proxy(module.default, {
       get(target, prop) {
-        if (prop !== 'default' && prop in module) return module[prop]
+        if (prop !== 'default' && prop in originalModule)
+          return originalModule[prop]
         return target[prop]
       },
       has(target, prop) {
-        return prop in module || prop in target
+        return prop in originalModule || prop in target
       },
       ownKeys(target) {
         const keys = new Set([
           ...Reflect.ownKeys(target),
-          ...Reflect.ownKeys(module)
+          ...Reflect.ownKeys(originalModule)
         ])
         keys.delete('default')
         return [...keys]
