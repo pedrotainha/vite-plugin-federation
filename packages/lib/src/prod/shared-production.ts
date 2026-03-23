@@ -19,6 +19,10 @@ import { parsedOptions } from '../public'
 import type { ConfigTypeSet, VitePluginFederationOptions } from 'types'
 import { basename, join, resolve } from 'path'
 import { readdirSync, readFileSync, statSync } from 'fs'
+import {
+  findImportSharedExportName,
+  patchCompilerRuntime
+} from './compiler-runtime-patch'
 const sharedFilePathReg = /__federation_shared_(.+)-.{8}\.js$/
 import federation_fn_import from './federation_fn_import.js?raw'
 
@@ -182,6 +186,58 @@ export function prodSharedPlugin(
     },
 
     generateBundle(options, bundle) {
+      // ---------------------------------------------------------------
+      // Patch: compiler-runtime chunk (host AND remote builds)
+      //
+      // react/compiler-runtime may be bundled as a separate chunk that
+      // imports React directly instead of going through importShared.
+      // In federated mode the host provides React via the share scope —
+      // the local chunk would be a DIFFERENT instance where the hooks
+      // dispatcher is never initialised.
+      //
+      // Fix: Rewrite the compiler-runtime chunk to obtain React via
+      // importShared("react") (top-level await).
+      // ---------------------------------------------------------------
+      {
+        let federationImportFileName: string | null = null
+        let importSharedExportName: string | null = null
+
+        for (const fileName in bundle) {
+          const chunk = bundle[fileName]
+          if (chunk.type !== 'chunk') continue
+          if (
+            fileName.includes('__federation_fn_import') ||
+            fileName.includes('_virtual___federation_fn_import')
+          ) {
+            federationImportFileName = fileName
+            importSharedExportName = findImportSharedExportName(chunk.code)
+          }
+        }
+
+        if (federationImportFileName && importSharedExportName) {
+          for (const fileName in bundle) {
+            const chunk = bundle[fileName]
+            if (chunk.type !== 'chunk') continue
+            if (
+              chunk.code.includes('useMemoCache') &&
+              chunk.code.includes(
+                '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE'
+              )
+            ) {
+              const patched = patchCompilerRuntime(
+                chunk.code,
+                federationImportFileName,
+                fileName,
+                importSharedExportName
+              )
+              if (patched !== chunk.code) {
+                chunk.code = patched
+              }
+            }
+          }
+        }
+      }
+
       if (!isRemote) {
         return
       }

@@ -57,7 +57,7 @@ export default function federation(
         devExposePlugin(options),
         devRemotePlugin(options)
       ]
-    }  else {
+    } else {
       pluginList = []
     }
     builderInfo.isHost = !!(
