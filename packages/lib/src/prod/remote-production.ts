@@ -598,6 +598,40 @@ export function prodRemotePlugin(
         }
       }
 
+      // ---------------------------------------------------------------
+      // Patch: modulepreload paths in federation expose chunks
+      //
+      // Vite's preload helper resolves paths with `return "/" + e` which
+      // produces absolute paths relative to the document origin. In
+      // federation mode the expose chunks run inside the host — the
+      // document origin is the HOST, not the remote. This causes
+      // modulepreload <link> elements to request chunks from the host
+      // (404) instead of the remote.
+      //
+      // Fix: Replace the path resolver function to use import.meta.url
+      // as the base, so preload paths resolve to the remote's origin.
+      // ---------------------------------------------------------------
+      if (builderInfo.isRemote) {
+        for (const fileName in bundle) {
+          const chunk = bundle[fileName]
+          if (chunk.type !== 'chunk') continue
+          if (!fileName.includes('__federation_expose_')) continue
+          // Match Vite's preload path resolver: function(e){return"/"+e}
+          // or variations like: function(t){return"/"+t}
+          const preloadPathRe =
+            /function\s*\(\s*(\w)\s*\)\s*\{\s*return\s*"\/"\s*\+\s*\1\s*\}/
+          if (preloadPathRe.test(chunk.code)) {
+            // import.meta.url points to the chunk inside /assets/.
+            // __vite__mapDeps paths already include "assets/" prefix.
+            // Use the remote origin (before /assets/) as base.
+            chunk.code = chunk.code.replace(
+              preloadPathRe,
+              `function($1){const __u=import.meta.url,__b=__u.substring(0,__u.lastIndexOf("assets/"));return __b+$1}`
+            )
+          }
+        }
+      }
+
       const preloadSharedReg = parsedOptions.prodShared
         .filter((shareInfo) => shareInfo[1].modulePreload)
         .map(
