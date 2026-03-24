@@ -2,10 +2,8 @@
  * Rewrites the compiler-runtime portion of a chunk to obtain React through
  * importShared("react") instead of a direct bundled import.
  *
- * This handles two cases:
- * 1. Dedicated compiler-runtime chunk (remotes) — small file, can be fully replaced
- * 2. Mixed chunk containing compiler-runtime + other modules (hosts with manualChunks)
- *    — only the __CLIENT_INTERNALS access is patched, other exports are preserved
+ * Always uses surgical patching — replaces only the __CLIENT_INTERNALS
+ * access while preserving all other code and exports in the chunk.
  */
 export function patchCompilerRuntime(
   code: string,
@@ -24,31 +22,11 @@ export function patchCompilerRuntime(
 
   const relPath = computeRelativePath(runtimeFile, federationImportFile)
 
-  // Check if this is a dedicated compiler-runtime chunk (only has useMemoCache export)
-  // or a mixed chunk (has other exports like React CJS wrapper)
-  const exportCount = (code.match(/export\s*\{/g) || []).length
-  const hasOtherExports =
-    code.includes('requireReact') || code.includes('getDefaultExportFromCjs')
-
-  if (!hasOtherExports && exportCount <= 1) {
-    // Dedicated chunk — full replacement (original behaviour for remotes)
-    return [
-      `import{${importSharedName} as __s}from"${relPath}";`,
-      `var __react=await __s("react");`,
-      `var __internals=__react.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;`,
-      `var __obj={c:function(n){return __internals.H.useMemoCache(n)}};`,
-      `export{__obj as c};`
-    ].join('')
-  }
-
-  // Mixed chunk — surgical patch: replace the function that reads __CLIENT_INTERNALS
+  // Surgical patch: replace the function that reads __CLIENT_INTERNALS
   // from a local React with one that reads from shared React.
   //
-  // Pattern we're looking for (minified):
+  // Pattern (works in both minified and unminified forms):
   //   var X = R().__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
-  //   return Y.c = function(n) { return X.H.useMemoCache(n) }
-  //
-  // We prepend the importShared call and replace the __CLIENT_INTERNALS access.
   const internalsPattern =
     /(\w+)\s*=\s*(\w+)\(\)\.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE/
   const match = internalsPattern.exec(code)

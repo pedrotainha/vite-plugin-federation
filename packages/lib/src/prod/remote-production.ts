@@ -579,7 +579,7 @@ export function prodRemotePlugin(
             const chunk = bundle[fileName]
             if (chunk.type !== 'chunk') continue
             if (
-              fileName.includes('compiler-runtime') &&
+              chunk.code.includes('useMemoCache') &&
               chunk.code.includes(
                 '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE'
               )
@@ -616,10 +616,11 @@ export function prodRemotePlugin(
           const chunk = bundle[fileName]
           if (chunk.type !== 'chunk') continue
           if (!fileName.includes('__federation_expose_')) continue
-          // Match Vite's preload path resolver: function(e){return"/"+e}
-          // or variations like: function(t){return"/"+t}
+          // Match Vite's preload path resolver in both minified and unminified forms:
+          //   minified:   function(e){return"/"+e}
+          //   unminified: function(dep) { return "/" + dep }
           const preloadPathRe =
-            /function\s*\(\s*(\w)\s*\)\s*\{\s*return\s*"\/"\s*\+\s*\1\s*\}/
+            /function\s*\(\s*(\w+)\s*\)\s*\{\s*return\s*"\/"\s*\+\s*\1\s*;?\s*\}/
           if (preloadPathRe.test(chunk.code)) {
             // import.meta.url points to the chunk inside /assets/.
             // __vite__mapDeps paths already include "assets/" prefix.

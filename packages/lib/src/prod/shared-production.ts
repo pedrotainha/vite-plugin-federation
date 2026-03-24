@@ -222,7 +222,12 @@ export function prodSharedPlugin(
               chunk.code.includes('useMemoCache') &&
               chunk.code.includes(
                 '__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE'
-              )
+              ) &&
+              // Only patch actual compiler-runtime chunks, not shared chunks
+              // that happen to contain React internals. The compiler-runtime
+              // CJS wrapper has this distinctive function name.
+              (chunk.code.includes('requireReactCompilerRuntime') ||
+                fileName.includes('compiler-runtime'))
             ) {
               const patched = patchCompilerRuntime(
                 chunk.code,
